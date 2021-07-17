@@ -1,0 +1,294 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Models\Mahasiswa_model;
+use CodeIgniter\Controller;
+
+class Mahasiswa extends Controller
+{
+    public function __construct()
+    {
+        $this->model = new Mahasiswa_model();
+        helper('form');
+    }
+
+    public function index($page = 'index')
+    {
+        if (!is_file(APPPATH . '/Views/mahasiswa/' . $page . '.php')) {
+            // jika halaman tidak ditemukan
+            throw new \CodeIgniter\Exceptions\PageNotFoundException($page);
+        }
+
+        $pager = \Config\Services::pager();
+        $data = [
+            'rows'  => $this->model->paginate(2, 'bootstrap'),
+            'title' => ucfirst($page),
+            'pager' => $this->model->pager
+        ];
+
+        echo view('templates/header', $data);
+        echo view('mahasiswa/' . $page, $data);
+        echo view('templates/footer');
+    }
+
+
+    public function detailMhs($id)
+    {
+        $data['title'] = "Detail data mahasiswa";
+        // $data['mhs'] = $this->model->where(['id' =>  $id])->first();
+        $data['mhs'] = $this->model->getDataMhs($id);
+
+        return view('mahasiswa/detailMhs', $data);
+    }
+
+    public function form_ubahMhs($id)
+    {
+        $data['title'] = "Ubah Mahasiswa";
+        $data['mhs'] = $this->model->getDataMhs($id);
+        $data['rowsProdi'] = $this->model->prodi();
+        echo view('templates/header', $data);
+        echo view('mahasiswa/form-ubahMhs', $data);
+        echo view('templates/footer');
+    }
+
+    public function ubahMhs($id)
+    {
+        $validation =  \Config\Services::validation();
+
+        $input = [
+            'nama' => $this->request->getPost('nama'),
+            'nim' => $this->request->getPost('nim'),
+            'email' => $this->request->getPost('email'),
+            'prodi' => $this->request->getPost('prodi')
+        ];
+
+        if ($validation->run($input, 'Mahasiswa') == FALSE) {
+            session()->setFlashdata('inputs', $this->request->getPost());
+            session()->setFlashdata('errors', $validation->getErrors());
+            return redirect()->to('/Mahasiswa/edit/' . $id)->withInput();
+        } else {
+
+            $ubahMhs = $this->model->ubahMhs($input, $id);
+
+            if ($ubahMhs) {
+                session()->setFlashdata('info', 'Data Mahasiswa berhasil diubah');
+                return redirect()->to(base_url('Mahasiswa'));
+            }
+        }
+    }
+
+    public function form_tambahMhs()
+    {
+        $data['title'] = "Tambah Mahasiswa";
+        $data['rowsProdi'] = $this->model->prodi();
+        echo view('templates/header', $data);
+        echo view('mahasiswa/form-tambahMhs');
+        echo view('templates/footer');
+    }
+
+    public function tambahMhs()
+    {
+        $validation =  \Config\Services::validation();
+
+        $input = [
+            'nama' => $this->request->getPost('nama'),
+            'nim' => $this->request->getPost('nim'),
+            'email' => $this->request->getPost('email'),
+            'prodi' => $this->request->getPost('prodi'),
+            'foto' => $this->request->getPost('foto')
+        ];
+
+        if ($validation->run($input, 'Mahasiswa') == FALSE) {
+            session()->setFlashdata('inputs', $this->request->getPost());
+            session()->setFlashdata('errors', $validation->getErrors());
+            return redirect()->to('/Mahasiswa/add');
+        } else {
+
+            // dd('berhasil');
+            //ambil gambar
+            $fileFoto =  $this->request->getFile('foto');
+            //generate name foto
+            $namaFoto = $fileFoto->getRandomName();
+            // pindahkan gambar
+            $fileFoto->move('img', $namaFoto);
+            //ambil nama file
+            // $namaFoto = $fileFoto->getName();
+
+            $simpan = $this->model->save([
+                'nama' => $this->request->getPost('nama'),
+                'nim' => $this->request->getPost('nim'),
+                'email' => $this->request->getPost('email'),
+                'prodi' => $this->request->getPost('prodi'),
+                'foto' => $namaFoto
+            ]);
+
+            if ($simpan) {
+                session()->setFlashdata('success', 'Data berhasil ditambah');
+            } else {
+                session()->setFlashdata('error', 'Data gagal ditambah');
+            }
+            return redirect()->to('/Mahasiswa');
+        }
+    }
+
+    public function hapusMhs($id)
+    {
+        $hapus = $this->model->hapusMhs($id);
+
+        if ($hapus) {
+            session()->setFlashdata('hapusMhs', 'Data berhasil dihapus');
+            return redirect()->to('/Mahasiswa');
+        }
+    }
+
+    // public function tambahMhslama()
+    // {
+    //     $validation =  \Config\Services::validation();
+
+    //     $input = [
+    //         'nama' => $this->request->getPost('nama'),
+    //         'nim' => $this->request->getPost('nim'),
+    //         'email' => $this->request->getPost('email'),
+    //         'prodi' => $this->request->getPost('prodi')
+    //     ];
+
+    //     if ($validation->run($input, 'Mahasiswa') == FALSE) {
+    //         session()->setFlashdata('inputs', $this->request->getPost());
+    //         session()->setFlashdata('errors', $validation->getErrors());
+    //         return redirect()->to(base_url('Mahasiswa/form_tambahMhs'));
+    //     } else {
+
+    //         $simpan = $this->model->tambahMhs($input);
+
+    //         if ($simpan) {
+    //             session()->setFlashdata('success', 'Data berhasil ditambah');
+    //         } else {
+    //             session()->setFlashdata('error', 'Data gagal ditambah');
+    //         }
+    //         return redirect()->to(base_url('Mahasiswa'));
+    //     }
+    // }
+
+    public function tambahlama()
+    {
+        $data['title'] = "Tambah Mahasiswa";
+
+        helper(['form']);
+
+        $rules = [
+            'nama' => [
+                'rules'  => 'required',
+                'errors' => [
+                    'required' => 'Kolom {field} harus diisi'
+                ]
+            ],
+            'nim' => [
+                'rules'  => 'required|numeric',
+                'errors' => [
+                    'required' => 'Kolom {field} harus diisi',
+                    'numeric' => 'Kolom {field} harus berisi angka'
+                ]
+            ],
+            'email' => [
+                'rules'  => 'required|valid_email',
+                'errors' => [
+                    'required' => 'Kolom {field} harus diisi',
+                    'valid_email' => '{field} tidak valid'
+                ]
+            ]
+        ];
+
+        if (!$this->validate($rules)) {
+            echo view('templates/header', $data);
+            echo view('mahasiswa/tambah', [
+                'validation' => $this->validator
+            ]);
+            echo view('templates/footer');
+        } else {
+            echo 'ok';
+            // $model->simpanDataMhs();
+            // $model = new Mahasiswa_model();
+            // $model->simpanDataMhs([
+            //     'nama' => $this->request->getVar('nama'),
+            //     'nim'  => $this->request->getVar('nim'),
+            //     'email'  => $this->request->getVar('email'),
+            //     'jurusan'  => $this->request->getVar('jurusan')
+            // ]);
+            // redirect('Mahasisiswa/index');
+        }
+    }
+}
+
+
+<?php
+
+namespace Config;
+
+class Validation
+{
+	//--------------------------------------------------------------------
+	// Setup
+	//--------------------------------------------------------------------
+
+	/**
+	 * Stores the classes that contain the
+	 * rules that are available.
+	 *
+	 * @var array
+	 */
+	public $ruleSets = [
+		\CodeIgniter\Validation\Rules::class,
+		\CodeIgniter\Validation\FormatRules::class,
+		\CodeIgniter\Validation\FileRules::class,
+		\CodeIgniter\Validation\CreditCardRules::class,
+	];
+
+	/**
+	 * Specifies the views that are used to display the
+	 * errors.
+	 *
+	 * @var array
+	 */
+	public $templates = [
+		'list'   => 'CodeIgniter\Validation\Views\list',
+		'single' => 'CodeIgniter\Validation\Views\single',
+	];
+
+	//--------------------------------------------------------------------
+	// Rules
+	//--------------------------------------------------------------------
+
+	public $Mahasiswa = [
+		'nama' => 'required',
+		'nim' => 'required|max_length[8]|min_length[8]|numeric',
+		'email' => 'required|valid_email',
+		'prodi' => 'required',
+		'foto' => 'uploaded[foto]|max_size[foto,1024]|is_image[foto]|mime_in[foto,image/jpg,image/jpeg,image/png]'
+	];
+
+	public $Mahasiswa_errors = [
+		'nama' => [
+			'required' => 'Kolom isian nama mahasiswa wajib diisi.',
+		],
+		'nim'    => [
+			'required' => 'Kolom isian nim mahasiswa wajib diisi.',
+			'max_length' => 'Kolom isian nim maksimal 8 karakter.',
+			'numeric' => 'Kolom isian nim harus angka.',
+			'min_length' => 'Kolom isian nim manimal 8 karakter.'
+		],
+		'email' => [
+			'required' => 'Kolom isian alamat email mahasiswa wajib diisi.',
+			'valid_email' => 'Kolom isian alamat Email tidak valid.'
+		],
+		'prodi' => [
+			'required' => 'Kolom isian prodi wajib dipilih.'
+		],
+		'foto' => [
+			'uploaded' => 'Kolom isian foto wajib dipilih.',
+			'max_size' => 'Ukuran file terlalu besar (Maksimal 1 MB).',
+			'is_image' => 'File yang dipilih bukan gambar.',
+			'mime_in' => 'File yang dipilih bukan gambar.',
+		]
+	];
+}
