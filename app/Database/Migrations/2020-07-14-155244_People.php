@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class TblOrang extends Migration
+class People extends Migration
 {
 	public function up()
 	{
@@ -18,6 +18,10 @@ class TblOrang extends Migration
 			'nama'       => [
 				'type'           => 'VARCHAR',
 				'constraint'     => '255',
+			],
+			'email'       => [
+				'type'           => 'TEXT',
+				'null'     => TRUE,
 			],
 			'alamat' => [
 				'type'           => 'VARCHAR',
@@ -33,11 +37,11 @@ class TblOrang extends Migration
 			],
 		]);
 		$this->forge->addKey('id', TRUE);
-		$this->forge->createTable('tbl_orang');
+		$this->forge->createTable('tbl_people');
 	}
 
 	public function down()
 	{
-		$this->forge->dropTable('tbl_orang');
+		$this->forge->dropTable('tbl_people');
 	}
 }

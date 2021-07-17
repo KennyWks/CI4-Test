@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class PeopleModel extends Model
 {
-    protected $table = 'tbl_orang';
+    protected $table = 'tbl_people';
 
     public function getProduct($id = false)
     {
@@ -19,7 +19,7 @@ class PeopleModel extends Model
 
     public function search($keyword)
     {
-        //     $builder = $this->table('orang');
+        //     $builder = $this->table('tbl_people');
         //     $builder->like('nama', $keyword);
         //     return $builder;
         return $this->table($this->table)->like('nama', $keyword)->orLike('alamat', $keyword);
@@ -28,7 +28,7 @@ class PeopleModel extends Model
     // public function getDataOrang()
     // { 
     //     $db      = \Config\Database::connect();
-    //     $builder = $db->table('orang');
+    //     $builder = $db->table('tbl_people');
     //     return $builder->get()->getResultArray();
     // }
 }
